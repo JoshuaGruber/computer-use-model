@@ -8,9 +8,11 @@ import argparse
 import logging
 import os
 import openai
+import asyncio
 
 import cua
 from local_computer import LocalComputer
+from vnc_computer import VNCComputer
 
 def main():
     logging.basicConfig(level=logging.WARNING, format='%(message)s')
@@ -23,6 +25,10 @@ def main():
     parser.add_argument("--autoplay", dest="autoplay", help="Autoplay VM actions without confirmation, only pause when the turn ends", action="store_true", default=True)
     parser.add_argument("--environment", dest="environment", default="linux")
     parser.add_argument("--vm-address", dest="vm_address", help="The address of the VM to use", type=str, default=None)
+    parser.add_argument("--host", dest="host", help="VNC host address", type=str, default=None)
+    parser.add_argument("--port", dest="port", help="VNC port", type=int, default=5900)
+    parser.add_argument("--username", dest="username", help="VNC username", type=str, default=None)
+    parser.add_argument("--password", dest="password", help="VNC password", type=str, default=None)
     args = parser.parse_args()
 
     if args.endpoint == "azure":
@@ -36,7 +42,11 @@ def main():
     model = args.model
 
     # Computer is used to take screenshots and send keystrokes or mouse clicks
-    computer = LocalComputer()
+    if args.host:
+        computer = VNCComputer(args.host, args.port, args.username, args.password)
+        asyncio.run(computer.connect())
+    else:
+        computer = LocalComputer()
 
     # Scaler is used to resize the screen to a smaller size
     size = (1024, 768)
